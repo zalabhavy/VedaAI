@@ -28,142 +28,13 @@
 
 ## 🏗️ System Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        CLIENT (Next.js 14)                      │
-│                                                                 │
-│  ┌──────────┐  ┌───────────┐  ┌──────────┐  ┌─────────────┐  │
-│  │  Home    │  │Assignments│  │  Create  │  │ View Paper  │  │
-│  │Dashboard │  │  List     │  │  Form    │  │+ Answer Key │  │
-│  └──────────┘  └───────────┘  └──────────┘  └─────────────┘  │
-│                                                                 │
-│  ┌─────────────────────────┐  ┌───────────────────────────┐   │
-│  │      Zustand Store      │  │    Socket.io Client       │   │
-│  │  assignmentStore.ts     │  │  (real-time progress)     │   │
-│  │  userStore.ts (persist) │  └───────────────────────────┘   │
-│  └─────────────────────────┘                                   │
-└──────────────────────────┬──────────────────────┬─────────────┘
-                           │ HTTP REST             │ WebSocket
-                           ▼                       ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    SERVER (Express + Node.js)                   │
-│                                                                 │
-│  ┌─────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
-│  │  REST API   │  │  Socket.io   │  │   BullMQ Worker      │  │
-│  │ /assignments│  │ (rooms by    │  │ (question-generation │  │
-│  │   CRUD      │  │ assignmentId)│  │  queue)              │  │
-│  └──────┬──────┘  └──────────────┘  └──────────┬───────────┘  │
-│         │                                        │              │
-│         ▼                                        ▼              │
-│  ┌─────────────┐                      ┌─────────────────────┐  │
-│  │   MongoDB   │◄─────────────────────│    Groq AI API      │  │
-│  │   (Atlas)   │                      │  (LLaMA 3.3 70B)    │  │
-│  └─────────────┘                      └─────────────────────┘  │
-│                                                                 │
-│  ┌─────────────┐                                               │
-│  │    Redis    │  BullMQ job queue + paper cache (1hr TTL)     │
-│  │  (Upstash)  │                                               │
-│  └─────────────┘                                               │
-└─────────────────────────────────────────────────────────────────┘
-```
+<img width="1440" height="1240" alt="image" src="https://github.com/user-attachments/assets/355963b3-8fbc-408f-89b7-ea956c349413" />
 
 ---
 
 ## 🔄 Assignment Generation Flow
 
-```
-User fills Create form
-        │
-        ▼
-POST /api/assignments
-        │
-        ├─► Save to MongoDB  (status: "pending")
-        ├─► Add job to BullMQ Queue (Redis)
-        └─► Return { assignmentId }
-                   │
-                   ▼
-        Client navigates to /assignments/:id
-        Socket.io joins room: "assignment:<id>"
-                   │
-                   ▼
-        BullMQ Worker picks up job
-        │
-        ├─► Emit progress: 10%   (started)
-        ├─► Load assignment from MongoDB
-        ├─► Emit progress: 20%   (loaded)
-        ├─► Build AI prompt (subject, board, types, difficulty…)
-        ├─► Call Groq API (LLaMA 3.3 70B)
-        ├─► Emit progress: 20-75% (every 2s during generation)
-        ├─► Parse & validate JSON response
-        ├─► Emit progress: 85%   (saving)
-        ├─► Save generatedPaper to MongoDB
-        ├─► Cache paper in Redis (1hr TTL)
-        └─► Emit: 100% + "paper-ready" event
-                   │
-                   ▼
-        Client auto-redirects to /assignments/:id/view
-```
-
----
-
-## 📁 Project Structure
-
-```
-VedaAI/
-├── client/                           # Next.js 14 App Router
-│   ├── public/
-│   │   └── logo.avif
-│   └── src/
-│       ├── app/
-│       │   ├── (main)/               # Route group — shared layout
-│       │   │   ├── layout.tsx        # Sidebar + TopBar + MobileBottomNav
-│       │   │   ├── page.tsx          # Home dashboard
-│       │   │   ├── assignments/
-│       │   │   │   ├── page.tsx          # List with search/sort
-│       │   │   │   ├── create/
-│       │   │   │   │   └── page.tsx      # Create form + file upload
-│       │   │   │   └── [id]/
-│       │   │   │       ├── page.tsx      # Real-time progress
-│       │   │   │       └── view/
-│       │   │   │           └── page.tsx  # Paper + PDF + print
-│       │   │   ├── groups/page.tsx
-│       │   │   ├── library/page.tsx
-│       │   │   ├── ai-toolkit/page.tsx
-│       │   │   └── settings/page.tsx
-│       │   ├── layout.tsx            # Root HTML shell
-│       │   └── globals.css
-│       ├── components/
-│       │   ├── Sidebar.tsx
-│       │   ├── TopBar.tsx
-│       │   ├── MobileSidebar.tsx
-│       │   ├── MobileBottomNav.tsx
-│       │   └── VedaLogo.tsx
-│       ├── lib/
-│       │   ├── api.ts                # Axios API client
-│       │   └── socket.ts             # Socket.io singleton
-│       └── store/
-│           ├── assignmentStore.ts    # Zustand (assignments)
-│           └── userStore.ts          # Zustand + localStorage persist
-│
-├── server/                           # Express + Node.js
-│   ├── src/
-│   │   ├── config/
-│   │   │   ├── db.ts                 # MongoDB connection
-│   │   │   └── redis.ts              # Upstash Redis connection
-│   │   ├── models/
-│   │   │   └── Assignment.ts         # Mongoose schema
-│   │   ├── routes/
-│   │   │   └── assignments.ts        # REST CRUD + multer upload
-│   │   ├── services/
-│   │   │   └── aiService.ts          # Groq prompt builder + parser
-│   │   ├── workers/
-│   │   │   └── questionWorker.ts     # BullMQ job processor
-│   │   └── index.ts                  # Express + Socket.io entry
-│   └── .env.example
-│
-├── .gitignore
-└── README.md
-```
+<img width="1440" height="1720" alt="image" src="https://github.com/user-attachments/assets/eb372739-734d-42d1-a771-dea305c0b251" />
 
 ---
 
@@ -247,11 +118,17 @@ NEXT_PUBLIC_SOCKET_URL=http://localhost:5000
 ### 5. Start the app
 
 ```bash
+# From the root/main folder
+npm run dev
+
+#OR
+
 # Terminal 1 — Backend
 cd server && npm run dev
 
 # Terminal 2 — Frontend
 cd client && npm run dev
+
 ```
 
 - Frontend → http://localhost:3000
