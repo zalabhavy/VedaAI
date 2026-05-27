@@ -85,6 +85,10 @@ export function setupWorker(io: SocketIOServer, redis: Redis) {
           paper,
         });
 
+        // Notify dashboard listeners
+        io.to('dashboard').emit('status', { assignmentId, status: 'completed' });
+        io.to('dashboard').emit('assignment-updated', { assignmentId });
+
         return paper;
       } catch (err: any) {
         console.error('Job failed:', err);
@@ -94,6 +98,10 @@ export function setupWorker(io: SocketIOServer, redis: Redis) {
           status: 'failed',
           error: err.message,
         });
+
+        // Notify dashboard listeners
+        io.to('dashboard').emit('status', { assignmentId, status: 'failed' });
+
         throw err;
       }
     },

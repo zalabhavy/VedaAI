@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import { getSocket, joinAssignment } from '@/lib/socket';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
 export default function AssignmentDetailPage() {
@@ -15,7 +14,6 @@ export default function AssignmentDetailPage() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const completedRef = useRef(false);
-  const wsConnectedRef = useRef(false);
 
   const cleanup = useCallback(() => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
@@ -49,7 +47,7 @@ export default function AssignmentDetailPage() {
     }, 1500);
   }, []);
 
-  // Polling fallback — checks server every 4s
+  // Poll server every 3s to check status
   const checkStatus = useCallback(async () => {
     try {
       const a = await api.getAssignment(id);
@@ -61,46 +59,12 @@ export default function AssignmentDetailPage() {
   }, [id, handleComplete, handleFailed]);
 
   useEffect(() => {
-    // 1. Initial status check
     checkStatus();
-
-    // 2. Start simulated progress bar
     startProgressSimulation();
+    pollRef.current = setInterval(checkStatus, 3000);
 
-    // 3. WebSocket — real-time updates
-    const socket = getSocket();
-    joinAssignment(id);
-
-    socket.on('connect', () => {
-      wsConnectedRef.current = true;
-      console.log('[WS] Connected for assignment:', id);
-    });
-
-    socket.on('status', (data: any) => {
-      if (data.assignmentId !== id) return;
-      wsConnectedRef.current = true;
-      // Use real progress from server when available
-      if (data.progress) {
-        setProgress((prev) => Math.max(prev, data.progress));
-      }
-      if (data.status === 'completed') handleComplete();
-      else if (data.status === 'failed') handleFailed(data.error);
-    });
-
-    socket.on('paper-ready', (data: any) => {
-      if (data.assignmentId === id) handleComplete();
-    });
-
-    // 4. Polling fallback (in case WebSocket doesn't connect)
-    pollRef.current = setInterval(checkStatus, 4000);
-
-    return () => {
-      socket.off('connect');
-      socket.off('status');
-      socket.off('paper-ready');
-      cleanup();
-    };
-  }, [id, checkStatus, startProgressSimulation, handleComplete, handleFailed, cleanup]);
+    return () => cleanup();
+  }, [id, checkStatus, startProgressSimulation, cleanup]);
 
   const handleRetry = async () => {
     setError('');
@@ -110,8 +74,7 @@ export default function AssignmentDetailPage() {
     try {
       await api.regenerate(id);
       startProgressSimulation();
-      joinAssignment(id);
-      pollRef.current = setInterval(checkStatus, 4000);
+      pollRef.current = setInterval(checkStatus, 3000);
     } catch {
       setError('Failed to retry');
     }

@@ -23,6 +23,23 @@ export default function AssignmentsPage() {
       .then(setAssignments)
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    // WebSocket: real-time list updates when assignments complete
+    const { getSocket } = require('@/lib/socket');
+    const socket = getSocket();
+    socket.emit('join', 'dashboard');
+
+    const handleUpdate = (data: any) => {
+      if (data.status === 'completed' || data.status === 'failed') {
+        api.getAssignments().then(setAssignments).catch(() => {});
+      }
+    };
+
+    socket.on('status', handleUpdate);
+
+    return () => {
+      socket.off('status', handleUpdate);
+    };
   }, [setAssignments, setLoading]);
 
   const filtered = assignments

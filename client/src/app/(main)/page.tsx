@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useAssignmentStore } from '@/store/assignmentStore';
 import { api } from '@/lib/api';
+import { getSocket } from '@/lib/socket';
 import { useEffect } from 'react';
 import { FileText, Sparkles, Clock, CheckCircle, AlertCircle, Plus } from 'lucide-react';
 import { useUserStore } from '@/store/userStore';
@@ -13,6 +14,27 @@ export default function HomePage() {
 
   useEffect(() => {
     api.getAssignments().then(setAssignments).catch(() => {});
+
+    // WebSocket: real-time dashboard updates when assignments complete
+    const socket = getSocket();
+    socket.emit('join', 'dashboard');
+
+    const handleStatusUpdate = (data: any) => {
+      if (data.status === 'completed' || data.status === 'failed') {
+        // Refresh assignment list when any assignment finishes
+        api.getAssignments().then(setAssignments).catch(() => {});
+      }
+    };
+
+    socket.on('status', handleStatusUpdate);
+    socket.on('assignment-updated', () => {
+      api.getAssignments().then(setAssignments).catch(() => {});
+    });
+
+    return () => {
+      socket.off('status', handleStatusUpdate);
+      socket.off('assignment-updated');
+    };
   }, [setAssignments]);
 
   const completed = assignments.filter((a) => a.status === 'completed').length;

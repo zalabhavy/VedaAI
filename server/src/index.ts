@@ -62,8 +62,9 @@ app.get('/api/health', (_req, res) => {
 // Socket.io
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
-  socket.on('join', (assignmentId: string) => {
-    socket.join(`assignment:${assignmentId}`);
+  socket.on('join', (room: string) => {
+    socket.join(room === 'dashboard' ? 'dashboard' : `assignment:${room}`);
+    console.log(`Socket ${socket.id} joined room: ${room}`);
   });
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
