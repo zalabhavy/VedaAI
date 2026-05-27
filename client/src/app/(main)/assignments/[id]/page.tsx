@@ -39,6 +39,10 @@ export default function AssignmentDetailPage() {
         setStatus(data.status);
         // Only increase progress, never decrease
         setProgress((prev) => Math.max(prev, data.progress || 0));
+        if (data.status === 'completed') {
+          setProgress(100);
+          setTimeout(() => router.push(`/assignments/${id}/view`), 1500);
+        }
         if (data.status === 'failed') {
           setError(data.error || 'Generation failed');
         }

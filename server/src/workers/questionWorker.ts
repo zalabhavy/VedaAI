@@ -41,12 +41,13 @@ export function setupWorker(io: SocketIOServer, redis: Redis) {
         });
 
         // Simulate progressive updates while AI generates
+        let currentProgress = 20;
         const progressInterval = setInterval(() => {
-          const current = Math.min(75, 20 + Math.random() * 10);
+          currentProgress = Math.min(75, currentProgress + Math.round(Math.random() * 8 + 2));
           io.to(`assignment:${assignmentId}`).emit('status', {
             assignmentId,
             status: 'processing',
-            progress: Math.round(current),
+            progress: currentProgress,
           });
         }, 2000);
 
