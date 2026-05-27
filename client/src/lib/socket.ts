@@ -9,6 +9,19 @@ export function getSocket(): Socket {
     socket = io(WS_URL, {
       transports: ['websocket', 'polling'],
       autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      withCredentials: true,
+    });
+
+    socket.on('connect', () => {
+      console.log('[Socket.IO] Connected:', socket?.id);
+    });
+
+    socket.on('connect_error', (err) => {
+      console.warn('[Socket.IO] Connection error:', err.message);
     });
   }
   return socket;

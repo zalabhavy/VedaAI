@@ -4,7 +4,6 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
 import { api } from '@/lib/api';
-import { getSocket, joinAssignment } from '@/lib/socket';
 import { useAssignmentStore } from '@/store/assignmentStore';
 import {
   Upload,
@@ -167,19 +166,7 @@ export default function CreateAssignmentPage() {
       const result = await api.createAssignment(data, file || undefined);
       addAssignment(result);
 
-      // Connect WebSocket for real-time updates
-      const socket = getSocket();
-      joinAssignment(result._id);
-
-      socket.on('status', (data: any) => {
-        updateStatus(data.assignmentId, data.status, data.progress || 0);
-      });
-
-      socket.on('paper-ready', () => {
-        router.push(`/assignments/${result._id}/view`);
-      });
-
-      // Navigate to processing page
+      // Navigate to processing page (WebSocket + polling handled there)
       router.push(`/assignments/${result._id}`);
     } catch (err: any) {
       setErrors({ submit: err.message || 'Failed to create assignment' });
