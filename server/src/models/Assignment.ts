@@ -47,6 +47,8 @@ export interface IAssignment extends Document {
   totalQuestions: number;
   totalMarks: number;
   status: 'draft' | 'processing' | 'completed' | 'failed';
+  failReason?: string;
+  retryAfter?: string;
   generatedPaper?: IGeneratedPaper;
   jobId?: string;
   createdAt: Date;
