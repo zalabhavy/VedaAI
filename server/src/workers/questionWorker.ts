@@ -92,11 +92,32 @@ export function setupWorker(io: SocketIOServer, redis: Redis) {
         return paper;
       } catch (err: any) {
         console.error('Job failed:', err);
-        await Assignment.findByIdAndUpdate(assignmentId, { status: 'failed' });
+
+        // Parse rate limit retry time from error message
+        let failReason = 'Generation failed. Please try again.';
+        let retryAfter = '';
+        const errMsg = err.message || '';
+        if (errMsg.includes('rate_limit') || errMsg.includes('429') || errMsg.includes('Rate limit') || errMsg.includes('quota')) {
+          const timeMatch = errMsg.match(/try again in ([\d]+h)?([\d]+m)?([\d.]+s)?/i)
+            || errMsg.match(/retry in ([\d]+h)?([\d]+m)?([\d.]+s)?/i);
+          if (timeMatch) {
+            retryAfter = timeMatch.slice(1).filter(Boolean).join(' ').trim();
+          }
+          failReason = retryAfter
+            ? `AI rate limit reached. Try again after ${retryAfter}.`
+            : 'AI rate limit reached. Please try again in a few minutes.';
+        }
+
+        await Assignment.findByIdAndUpdate(assignmentId, {
+          status: 'failed',
+          failReason,
+          retryAfter,
+        });
         io.to(`assignment:${assignmentId}`).emit('status', {
           assignmentId,
           status: 'failed',
-          error: err.message,
+          error: failReason,
+          retryAfter,
         });
 
         // Notify dashboard listeners

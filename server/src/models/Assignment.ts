@@ -105,6 +105,8 @@ const assignmentSchema = new Schema<IAssignment>(
       enum: ['draft', 'processing', 'completed', 'failed'],
       default: 'draft',
     },
+    failReason: { type: String, default: '' },
+    retryAfter: { type: String, default: '' },
     generatedPaper: generatedPaperSchema,
     jobId: String,
   },
