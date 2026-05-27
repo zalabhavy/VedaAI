@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: #F2F2F2;
+  color: #1A1A1A;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #aaa; }
+
+/* Hide native date picker icon */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  width: 48px;
+  height: 100%;
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-inner-spin-button,
+input[type="date"]::-webkit-clear-button {
+  display: none;
+  -webkit-appearance: none;
+}
+
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+input[type="date"] {
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+}
+
+/* Print styles */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white !important; margin: 0; padding: 0; }
+
+  @page {
+    size: A4;
+    margin: 15mm 12mm;
+  }
+
+  /* Remove browser header/footer (date, title, URL) */
+  html {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide sidebar, topbar, bottom nav, action bars */
+  aside, header, nav, footer,
+  .no-print { display: none !important; }
+
+  /* Make paper full width */
+  main { padding: 0 !important; }
+  main > div { padding: 0 !important; }
+
+  /* Hide the dark banner */
+  .print-hide { display: none !important; }
+
+  /* Ensure no page break mid-question */
+  .space-y-3 > div, .space-y-4 > div {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  h2, h3 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+}

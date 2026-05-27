@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+dist/
+
+# Environment files (contain secrets)
+.env
+.env.local
+server/.env
+
+# Uploads
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
