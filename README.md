@@ -28,13 +28,14 @@
 
 ## 🏗️ System Architecture
 
-<img width="1440" height="1240" alt="image" src="https://github.com/user-attachments/assets/355963b3-8fbc-408f-89b7-ea956c349413" />
+<img width="1584" height="1380" alt="image" src="https://github.com/user-attachments/assets/3920ffa7-04c0-4142-9528-17acbaa04891" />
+
 
 ---
 
 ## 🔄 Assignment Generation Flow
 
-<img width="1440" height="1720" alt="image" src="https://github.com/user-attachments/assets/eb372739-734d-42d1-a771-dea305c0b251" />
+<img width="1180" height="1300" alt="image" src="https://github.com/user-attachments/assets/d5e35c9d-624d-407e-9481-4bf9f08f2fc8" />
 
 ---
 
