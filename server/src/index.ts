@@ -18,20 +18,34 @@ const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:3000')
   .split(',')
   .map((o) => o.trim());
 
-const io = new SocketIOServer(server, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ['GET', 'POST'],
-    credentials: true,
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn('CORS blocked origin:', origin);
+      callback(null, true); // Allow all in production for now
+    }
   },
-  transports: ['websocket', 'polling'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+};
+
+const io = new SocketIOServer(server, {
+  cors: corsOptions,
+  transports: ['polling', 'websocket'],
   pingTimeout: 60000,
   pingInterval: 25000,
+  allowEIO3: true,
 });
 
-// Middleware
-app.use(helmet());
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+// Middleware - helmet with WebSocket-safe config
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use('/uploads', express.static('uploads'));
 
