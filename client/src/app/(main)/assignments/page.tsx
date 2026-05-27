@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAssignmentStore, Assignment } from '@/store/assignmentStore';
 import { api } from '@/lib/api';
+import { getSocket } from '@/lib/socket';
 import { Search, Filter, MoreVertical, Plus, X, ChevronDown } from 'lucide-react';
 
 export default function AssignmentsPage() {
@@ -25,21 +26,26 @@ export default function AssignmentsPage() {
       .finally(() => setLoading(false));
 
     // WebSocket: real-time list updates when assignments complete
-    const { getSocket } = require('@/lib/socket');
-    const socket = getSocket();
-    socket.emit('join', 'dashboard');
+    let socket: any = null;
+    try {
+      socket = getSocket();
+      socket.emit('join', 'dashboard');
 
-    const handleUpdate = (data: any) => {
-      if (data.status === 'completed' || data.status === 'failed') {
-        api.getAssignments().then(setAssignments).catch(() => {});
-      }
-    };
+      const handleUpdate = (data: any) => {
+        if (data.status === 'completed' || data.status === 'failed') {
+          api.getAssignments().then(setAssignments).catch(() => {});
+        }
+      };
 
-    socket.on('status', handleUpdate);
+      socket.on('status', handleUpdate);
 
-    return () => {
-      socket.off('status', handleUpdate);
-    };
+      return () => {
+        socket.off('status', handleUpdate);
+      };
+    } catch {
+      // WebSocket failed to connect, no-op — data still loads via API
+      return () => {};
+    }
   }, [setAssignments, setLoading]);
 
   const filtered = assignments

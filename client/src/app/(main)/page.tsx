@@ -16,25 +16,29 @@ export default function HomePage() {
     api.getAssignments().then(setAssignments).catch(() => {});
 
     // WebSocket: real-time dashboard updates when assignments complete
-    const socket = getSocket();
-    socket.emit('join', 'dashboard');
+    let socket: any = null;
+    try {
+      socket = getSocket();
+      socket.emit('join', 'dashboard');
 
-    const handleStatusUpdate = (data: any) => {
-      if (data.status === 'completed' || data.status === 'failed') {
-        // Refresh assignment list when any assignment finishes
+      const handleStatusUpdate = (data: any) => {
+        if (data.status === 'completed' || data.status === 'failed') {
+          api.getAssignments().then(setAssignments).catch(() => {});
+        }
+      };
+
+      socket.on('status', handleStatusUpdate);
+      socket.on('assignment-updated', () => {
         api.getAssignments().then(setAssignments).catch(() => {});
-      }
-    };
+      });
 
-    socket.on('status', handleStatusUpdate);
-    socket.on('assignment-updated', () => {
-      api.getAssignments().then(setAssignments).catch(() => {});
-    });
-
-    return () => {
-      socket.off('status', handleStatusUpdate);
-      socket.off('assignment-updated');
-    };
+      return () => {
+        socket.off('status', handleStatusUpdate);
+        socket.off('assignment-updated');
+      };
+    } catch {
+      return () => {};
+    }
   }, [setAssignments]);
 
   const completed = assignments.filter((a) => a.status === 'completed').length;
