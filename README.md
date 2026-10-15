@@ -86,7 +86,7 @@ git clone https://github.com/zalabhavy/VedaAI.git
 cd VedaAI
 ```
 
-### 2. Install dependencies
+### 2.Install dependencies
 
 ```bash
 cd client && npm install && cd ..
